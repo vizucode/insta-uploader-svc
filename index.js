@@ -19,9 +19,6 @@ async function main() {
   // dismiss notification popup
   await dismissNotifPopup(page)
 
-  // hijack cookie
-  await hijackCookie(page)
-
   // await browser.close()
 }
 
@@ -52,6 +49,9 @@ async function login(page) {
     await page.type('input[type=password]', password)
     await page.click('#loginForm > div > div:nth-child(3) > button');
     await page.waitForNavigation();
+
+    // hijack cookie
+    await hijackCookie(page)
   }
 }
 
