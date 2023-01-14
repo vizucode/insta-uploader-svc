@@ -33,8 +33,8 @@ async function main() {
   await uploadImage(page, 'void high lord')
 
   console.log('finished, :)')
-  // await browser.close()
-
+  
+  await browser.close()
 }
 
 async function abortShowingImage(page) {
