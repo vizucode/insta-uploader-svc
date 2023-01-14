@@ -1,10 +1,16 @@
 const puppeteer = require('puppeteer');
 require('dotenv').config('.env');
 const fs = require('fs');
+const { parse } = require('path');
+const { env } = require('process');
 const cookieFile = 'cookie.json'
 
 async function main() {
-  const browser = await puppeteer.launch({headless: false});
+  let browser = await puppeteer.launch();
+  if (process.env.ENVIRONMENT == "dev") {
+    browser = await puppeteer.launch({headless: false});
+  }
+
   const page = await browser.newPage();
 
   // inject cookie
@@ -21,9 +27,14 @@ async function main() {
 
   // trigger upload form and upload image
   await uploadImage(page)
+
+  console.log('finished, :)')
+  await browser.close()
+
 }
 
 async function abortShowingImage(page) {
+  console.log('abort showing images...')
   await page.setRequestInterception(true);
   page.on('request', (req) => {
     if(req.resourceType() == 'image') {req.abort();}
@@ -56,7 +67,15 @@ async function uploadImage(page) {
         let filename = 'kurisu.png';
         await inputUploadHandler.uploadFile(filename);
 
-      
+        // next step click to filter
+        await nextStepClickButton(page, 'div > div > div > div > div:nth-child(4) > div > div > div.x9f619.x1n2onr6.x1ja2u2z > div > div.x1uvtmcs.x4k7w5x.x1h91t0o.x1beo9mf.xaigb6o.x12ejxvf.x3igimt.xarpa2k.xedcshv.x1lytzrv.x1t2pt76.x7ja8zs.x1n2onr6.x1qrby5j.x1jfb8zj > div > div > div > div > div.x7r02ix.xf1ldfh.x131esax.xdajt7p.xxfnqb6.xb88tzc.xw2csxc.x1odjw0f.x5fp0pe > div > div > div > div._ab8w._ab94._ab99._ab9f._ab9m._ab9p._abcm > div > div > div._ac7b._ac7d > div > button', 'next to filter..')
+
+        // next step click to caption
+        await nextStepClickButton(page, 'div > div > div > div > div:nth-child(4) > div > div > div.x9f619.x1n2onr6.x1ja2u2z > div > div.x1uvtmcs.x4k7w5x.x1h91t0o.x1beo9mf.xaigb6o.x12ejxvf.x3igimt.xarpa2k.xedcshv.x1lytzrv.x1t2pt76.x7ja8zs.x1n2onr6.x1qrby5j.x1jfb8zj > div > div > div > div > div.x7r02ix.xf1ldfh.x131esax.xdajt7p.xxfnqb6.xb88tzc.xw2csxc.x1odjw0f.x5fp0pe > div > div > div > div._ab8w._ab94._ab99._ab9f._ab9m._ab9p._abcm > div > div > div._ac7b._ac7d > div > button', 'next to caption..')
+
+        // finished step
+        await nextStepClickButton(page, 'div > div > div > div > div:nth-child(4) > div > div > div.x9f619.x1n2onr6.x1ja2u2z > div > div.x1uvtmcs.x4k7w5x.x1h91t0o.x1beo9mf.xaigb6o.x12ejxvf.x3igimt.xarpa2k.xedcshv.x1lytzrv.x1t2pt76.x7ja8zs.x1n2onr6.x1qrby5j.x1jfb8zj > div > div > div > div > div.x7r02ix.xf1ldfh.x131esax.xdajt7p.xxfnqb6.xb88tzc.xw2csxc.x1odjw0f.x5fp0pe > div > div > div > div._ab8w._ab94._ab99._ab9f._ab9m._ab9p._abcm > div > div > div._ac7b._ac7d > div > button', 'on shared please wait...')
+
     }catch(err) {
       console.log('error upload image..')
       console.log(err)
@@ -64,13 +83,23 @@ async function uploadImage(page) {
   }
 }
 
+async function nextStepClickButton(page, selector, log) {
+  console.log(log)
+  await page.waitForSelector(selector);
+  const nextButton = await page.$(selector)
+  await nextButton.click();
+  await page.waitForNetworkIdle(1000,1000)
+}
+
 async function dismissNotifPopup(page) {
+  console.log('dismiss notification popup...')
   await page.waitForNetworkIdle(1000, 1000)
   const[button] = await page.$x("//button[contains(., 'Not Now')]");
   if(button){await button.click();}
 }
 
 async function login(page) {
+  console.log('login...')
   await page.goto('https://www.instagram.com/', {waitUntil: 'networkidle0', timeout:0})
 
   // if session is injected
@@ -87,6 +116,7 @@ async function login(page) {
     // hijack cookie
     await hijackCookie(page)
   }
+  console.log('logged.')
 }
 
 async function hijackCookie(page) {
@@ -101,6 +131,7 @@ async function hijackCookie(page) {
 }
 
 async function injectCookie(page) {
+  console.log('reading cookie...')
   if(fs.existsSync(cookieFile)) {
     const cookieRaw = fs.readFileSync(cookieFile)
     const cookieList = JSON.parse(cookieRaw)
@@ -108,7 +139,9 @@ async function injectCookie(page) {
       for (the_cookie of cookieList) {
         await page.setCookie(the_cookie)
       }
-      console.log("cookie readed")
+      if (process.env.ENVIRONMENT == "dev") {
+        console.log("cookie readed")
+      }
     }
   }else {
     console.log("cookie doesn't exist")
