@@ -1,8 +1,6 @@
 const puppeteer = require('puppeteer');
 require('dotenv').config('.env');
 const fs = require('fs');
-const { parse } = require('path');
-const { env } = require('process');
 const cookieFile = 'cookie.json'
 
 async function main() {
