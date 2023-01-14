@@ -1,7 +1,6 @@
 const puppeteer = require('puppeteer');
 require('dotenv').config('.env');
 const fs = require('fs');
-const { format } = require('path');
 const cookieFile = 'cookie.json'
 
 async function main() {
@@ -11,15 +10,19 @@ async function main() {
   // inject cookie
   await injectCookie(page)
 
-  // // abort showing images
+  // abort showing images
   await abortShowingImage(page)
 
+  // login insta
   await login(page)
+
+  // dismiss notification popup
+  await dismissNotifPopup(page)
 
   // hijack cookie
   await hijackCookie(page)
 
-  await browser.close()
+  // await browser.close()
 }
 
 async function abortShowingImage(page) {
@@ -30,15 +33,26 @@ async function abortShowingImage(page) {
   })
 }
 
+async function dismissNotifPopup(page) {
+  await page.waitForNetworkIdle(1000, 1000)
+  const[button] = await page.$x("//button[contains(., 'Not Now')]");
+  if(button){await button.click();}
+}
+
 async function login(page) {
   await page.goto('https://www.instagram.com/', {waitUntil: 'networkidle0', timeout:0})
-  let username = process.env.INSTA_USERNAME
-  let password = new Buffer(process.env.INSTA_PASSWORD, 'base64')
-  password = password.toString('ascii')
-  await page.type('input[type=text]', username)
-  await page.type('input[type=password]', password)
-  await page.click('#loginForm > div > div:nth-child(3) > button');
-  await page.waitForNavigation();
+
+  // if session is injected
+  if (await page.$('input[type=password]') != null) {
+    let username = process.env.INSTA_USERNAME
+    let password = new Buffer(process.env.INSTA_PASSWORD, 'base64')
+    password = password.toString('ascii')
+  
+    await page.type('input[type=text]', username)
+    await page.type('input[type=password]', password)
+    await page.click('#loginForm > div > div:nth-child(3) > button');
+    await page.waitForNavigation();
+  }
 }
 
 async function hijackCookie(page) {
